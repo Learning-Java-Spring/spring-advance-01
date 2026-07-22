@@ -1,0 +1,115 @@
+// ============================================================================
+// 1. OS 환경 감지 및 경로 설정
+// ============================================================================
+def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+def sharedLibsPath = isWindows ? 'D:/DEV/workspace/share-libs' : '/Users/soochang/DEV/workspace/share-libs'
+
+def isOffline = file('offline.flag').exists()
+
+// ============================================================================
+// 2. 작업 반장 세팅 (플러그인)
+// ============================================================================
+buildscript {
+	// 🚨 여기서 변수를 다시 한 번 정의해야 buildscript가 인식합니다!
+	def isOffline = file('offline.flag').exists()
+
+	repositories {
+		if (!isOffline) { mavenCentral() }
+	}
+	dependencies {
+		if (isOffline) {
+			// 🚨 폐쇄망에서는 여기서도 D드라이브 공용 창고를 직접 바라보게 해야 합니다!
+			classpath fileTree(dir: 'D:/DEV/workspace/share-libs', include: ['*.jar'])
+		} else {
+			classpath 'org.springframework.boot:spring-boot-gradle-plugin:4.1.0'
+			classpath 'io.spring.gradle:dependency-management-plugin:1.1.7'
+		}
+	}
+}
+
+apply plugin: 'java'
+if (!isOffline) {
+	apply plugin: 'org.springframework.boot'
+	apply plugin: 'io.spring.dependency-management'
+}
+
+group = 'hello'
+version = '0.0.1-SNAPSHOT'
+
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(21)
+	}
+}
+
+
+// ============================================================================
+// 3. 내 프로젝트 자재(Dependencies) 세팅
+// ============================================================================
+repositories {
+	if (!isOffline) { mavenCentral() }
+}
+
+dependencies {
+	if (isOffline) {
+		implementation fileTree(dir: sharedLibsPath, include: ['*.jar'])
+		compileOnly fileTree(dir: sharedLibsPath, include: ['*.jar'])
+		annotationProcessor fileTree(dir: sharedLibsPath, include: ['*.jar'])
+
+		testImplementation fileTree(dir: sharedLibsPath, include: ['*.jar'])
+		testCompileOnly fileTree(dir: sharedLibsPath, include: ['*.jar'])
+		testAnnotationProcessor fileTree(dir: sharedLibsPath, include: ['*.jar'])
+	} else {
+		implementation 'org.springframework.boot:spring-boot-h2console'
+		//JdbcTemplate
+		implementation 'org.springframework.boot:spring-boot-starter-jdbc'
+		//MyBatis 추가
+		implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:4.0.1'
+		//JPA , 스프링 데이터JPA추가
+		implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+		//Querydsl 추가
+		implementation 'com.querydsl:querydsl-jpa:5.1.0:jakarta'
+		annotationProcessor "com.querydsl:querydsl-apt:5.1.0:jakarta"
+		annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+		annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+		//implementation 'com.querydsl:querydsl:querydsl-jpa'
+		//annotationProcessor "com.querydsl:querydsl-apt:${dependencyManagement.importedProperties['querydsl.version']}:jpa"
+		//annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+		//annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+
+		implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+		implementation 'org.springframework.boot:spring-boot-starter-web'
+		implementation 'org.springframework.boot:spring-boot-starter-validation'
+		compileOnly 'org.projectlombok:lombok'
+		//H2 데이터베이스
+		runtimeOnly 'com.h2database:h2'
+		annotationProcessor 'org.projectlombok:lombok'
+
+		testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
+		//testImplementation 'org.springframework.boot:spring-boot-starter-web-test'
+		testImplementation 'org.springframework.boot:spring-boot-starter-test'
+		testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
+		testImplementation 'org.springframework.boot:spring-boot-starter-jdbc-test'
+		testCompileOnly 'org.projectlombok:lombok'
+		testCompileOnly 'org.apiguardian:apiguardian-api:1.1.2'
+		testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+		testAnnotationProcessor 'org.projectlombok:lombok'
+	}
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+clean{
+	delete file('src/main/qenerated')
+}
+
+task copyAllDependencies(type: Copy) {
+	from configurations.runtimeClasspath
+	from configurations.compileClasspath
+	from configurations.annotationProcessor
+	from configurations.testRuntimeClasspath
+	into 'libs' // 프로젝트 루트의 'libs' 폴더로 복사
+}
