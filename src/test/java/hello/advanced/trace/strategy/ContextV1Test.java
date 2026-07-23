@@ -35,6 +35,9 @@ public class ContextV1Test {
     @Test
     void strategyV1(){
         StrategyLogic1 strategyLogic1 = new StrategyLogic1();
+        //Context의 execute 에는 로직이 있고
+        //execute내에 strategy.call()있기때문에
+        //위에서 만든 strategyLogic1을 주입하여 반복되는 로직을 보이지 않게 처리 한다.
         ContextV1 context1 = new ContextV1(strategyLogic1);
         context1.execute();
 
