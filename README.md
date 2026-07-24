@@ -1,3 +1,3 @@
-Template pattern
+GOF Template pattern
 Strategy pattern
 Template callback pattern
